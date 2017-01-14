@@ -251,6 +251,9 @@ class FullyConnectedNet(object):
         layer_caches["layer_%d_bn" % (i + 1)] = layer_cache
       layer_output, layer_cache = relu_forward(layer_output)
       layer_caches["layer_%d_relu" % (i + 1)] = layer_cache
+      if self.use_dropout:
+        layer_output, layer_cache = dropout_forward(layer_output, self.dropout_param)
+        layer_caches["layer_%d_dropout" % (i + 1)] = layer_cache
 
     scores, cache_scores = affine_forward(layer_output,
                                           self.params["W%d" % self.num_layers],
@@ -282,6 +285,8 @@ class FullyConnectedNet(object):
     dx, grads["W%d" % self.num_layers], grads["b%d" % self.num_layers] = \
             affine_backward(dscores, layer_caches["layer_%d_dense" % self.num_layers])
     for i in reversed(range(0, self.num_layers - 1)):
+      if self.use_dropout:
+        dx = dropout_backward(dx, layer_caches["layer_%d_dropout" % (i + 1)])
       dx = relu_backward(dx, layer_caches["layer_%d_relu" % (i + 1)])
       if self.use_batchnorm:
         dx, grads["gamma%d" % (i + 1)], grads["beta%d" % (i + 1)] = \
